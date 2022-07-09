@@ -81,42 +81,149 @@ float f(float arr[2]) { return arr[0] + arr[1]; }
 //  return float4(x*fw - 0.5f + viewportf.x, y*fh - 0.5f + viewportf.y, a_pos.z, a_pos.w);
 //}
 
-struct ConstantInputData
+struct Uniforms
 {
   float projM[16];
-  float viewportWidth;
+  float width;
+  float height;
 };
 
-float ProjectX(float B[16], float V[4])
+float VS_X(float V[3], const Uniforms& data)
 {
-  float W = V[0] * B[3] + V[1] * B[7] + V[2] * B[11] + V[3] * B[15]; 
-  return V[0]/W;
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = V[0]/W;
+  return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
 }
 
-float ProjectY(float B[16], float V[4])
+float VS_Y(float V[3], const Uniforms& data)
 {
-  float W =  V[0] * B[3] + V[1] * B[7] + V[2] * B[11] + V[3] * B[15]; 
-  return V[1]/W;
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = V[1]/W;
+  return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
 }
 
-float NdcToScreenSpace(float x, float width)
+void VS_X_grad(float V[3], const Uniforms &data, 
+               float _d_V[3]) 
 {
-  return (x*0.5f + 0.5f)*width - 0.5f;
+    float _t0;
+    float _t1;
+    float _t2;
+    float _t3;
+    float _t4;
+    float _t5;
+    float _d_W = 0;
+    float _t6;
+    float _t7;
+    float _d_xNDC = 0;
+    float _t8;
+    float _t9;
+    _t1 = V[0];
+    _t0 = data.projM[3];
+    _t3 = V[1];
+    _t2 = data.projM[7];
+    _t5 = V[2];
+    _t4 = data.projM[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t7 = V[0];
+    _t6 = W;
+    const float xNDC = _t7 / _t6;
+    _t9 = (xNDC * 0.5F + 0.5F);
+    _t8 = data.width;
+    float VS_X_return = _t9 * _t8 - 0.5F;
+    {
+        float _r8 = 1 * _t8;
+        float _r9 = _r8 * 0.5F;
+        _d_xNDC += _r9;
+        float _r10 = _t9 * 1;
+    }
+    {
+        float _r6 = _d_xNDC / _t6;
+        _d_V[0] += _r6;
+        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
+        _d_W += _r7;
+    }
+    {
+        float _r0 = _d_W * _t0;
+        _d_V[0] += _r0;
+        float _r1 = _t1 * _d_W;
+        float _r2 = _d_W * _t2;
+        _d_V[1] += _r2;
+        float _r3 = _t3 * _d_W;
+        float _r4 = _d_W * _t4;
+        _d_V[2] += _r4;
+        float _r5 = _t5 * _d_W;
+    }
 }
 
-float VS_X(float B[16], float V[4], float width)
-{
-  const float xNDC = ProjectX(B,V);
-  return NdcToScreenSpace(xNDC, width);
+void VS_Y_grad(float V[3], const Uniforms &data, 
+               float _d_V[3]) {
+    float _t0;
+    float _t1;
+    float _t2;
+    float _t3;
+    float _t4;
+    float _t5;
+    float _d_W = 0;
+    float _t6;
+    float _t7;
+    float _d_xNDC = 0;
+    float _t8;
+    float _t9;
+    _t1 = V[0];
+    _t0 = data.projM[3];
+    _t3 = V[1];
+    _t2 = data.projM[7];
+    _t5 = V[2];
+    _t4 = data.projM[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t7 = V[1];
+    _t6 = W;
+    const float xNDC = _t7 / _t6;
+    _t9 = (xNDC * 0.5F + 0.5F);
+    _t8 = data.height;
+    float VS_Y_return = _t9 * _t8 - 0.5F;
+    goto _label0;
+  _label0:
+    {
+        float _r8 = 1 * _t8;
+        float _r9 = _r8 * 0.5F;
+        _d_xNDC += _r9;
+        float _r10 = _t9 * 1;
+    }
+    {
+        float _r6 = _d_xNDC / _t6;
+        _d_V[1] += _r6;
+        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
+        _d_W += _r7;
+    }
+    {
+        float _r0 = _d_W * _t0;
+        _d_V[0] += _r0;
+        float _r1 = _t1 * _d_W;
+        float _r2 = _d_W * _t2;
+        _d_V[1] += _r2;
+        float _r3 = _t3 * _d_W;
+        float _r4 = _d_W * _t4;
+        _d_V[2] += _r4;
+        float _r5 = _t5 * _d_W;
+    }
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void VS_X_grad(float B[16], float V[4], float width, clad::array_ref<float> _d_B, clad::array_ref<float> _d_V, clad::array_ref<float> _d_width);
+struct IgnoreMe
+{
+  float c;
+};
 
+float testFunc(float x, float y, const IgnoreMe* data)
+{
+  return x*y+data->c;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -124,31 +231,37 @@ int main(int argc, const char** argv)
 {
   //float x = 1.0f;
   //float y = 2.0f;
-  //float xy[2] = {x,y};  
-  //auto f_grad1 = clad::gradient(f);
-  //float result1[2] = {};
-  //f_grad1.execute(xy, &result1[0]);
+  ////float xy[2] = {x,y};  
+  //auto f_grad1 = clad::gradient(testFunc);
+  //float result1[3] = {};
+  //
+  //IgnoreMe data;
+  //data.c = 3.0f;
+  //
+  ////f_grad1.execute(x, y, data, &result1[0],  &result1[1]);
+  ////testFunc_grad(x,y,data, &result1[0],  &result1[1]);
   //std::cout << "dx: " << result1[0] << ' ' << "dy: " << result1[1] << std::endl;
   
-  ConstantInputData data = {
-                            {1.0f, 0.3f, 0.2f, 0.1f,
-                             0.3f, 1.0f, 0.1f, 0.1f,
-                             0.2f, 0.2f, 1.0f, 0.1f,
-                             0.1f, 0.1f, 0.1f, 1.0f}, 
 
-                             1024.0f};
+  
+  Uniforms data = {
+                    {1.0f, 0.3f, 0.2f, 0.1f,
+                     0.3f, 1.0f, 0.1f, 0.1f,
+                     0.2f, 0.2f, 1.0f, 0.1f,
+                     0.1f, 0.1f, 0.1f, 1.0f},
+                     1024.0f};
 
   std::cout << "HERE(1)" << std::endl;
 
-  auto vsx_grad = clad::gradient(VS_X);
+  auto vsx_grad = clad::gradient(VS_Y);
 
   std::cout << "HERE(2)" << std::endl;
 
-  float vertex[4] = {1,1,1,1};
-  float result1[16+4+1] = {};
+  float vertex[3] = {1,1,1};
+  float result1[3] = {};
   
-  vsx_grad.execute(data.projM, vertex, data.viewportWidth,
-                   clad::array_ref<float>(&result1[0], 16), clad::array_ref<float>(&result1[16], 4), clad::array_ref<float>(&result1[20], 1));
+  //vsx_grad.execute(data.projM, vertex, data.width,
+  //                 clad::array_ref<float>(&result1[0], 16), clad::array_ref<float>(&result1[16], 4), clad::array_ref<float>(&result1[20], 1));
 
   //VS_X_grad(data.projM, vertex, data.viewportWidth,
   //          clad::array_ref<float>(&result1[0], 16), clad::array_ref<float>(&result1[16], 4), clad::array_ref<float>(&result1[20], 1));
@@ -157,9 +270,9 @@ int main(int argc, const char** argv)
 
   for(int i=0;i<21;i++)
     std::cout << i << ":\t" << result1[i] << std::endl;
+  
 
-
-/*
+  /*
   auto ggx_grad = clad::gradient(EvalGGX);
 
   float3 lightDir = LiteMath::normalize(float3(-1,1,0));
@@ -214,7 +327,7 @@ int main(int argc, const char** argv)
 
   for(int i=0;i<10;i++)
     std::cout << std::setw(10) << std::right << result1[i] << " | " << result2[i] << std::endl;
-  */ 
+  */
  
   return 0;
 }
