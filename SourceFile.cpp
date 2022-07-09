@@ -32,7 +32,7 @@ static inline float GGX_GeomShadMask(const float cosThetaN, const float alpha)
   return GP;
 }
 
-static inline float EvalGGX(float l[3], float v[3], float n[3], float roughness)
+float EvalGGX(float l[3], float v[3], float n[3], float roughness)
 {
   float h[3]; // const float3 h = normalize(v + l); // half vector
   {
@@ -54,8 +54,71 @@ static inline float EvalGGX(float l[3], float v[3], float n[3], float roughness)
   return (D * G)/maxD(4.0f * dotNV * dotNL, 1e-6f); 
 } 
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 float f(float arr[2]) { return arr[0] + arr[1]; }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//static inline void mat4_colmajor_mul_vec4(float RES[4], const float B[16], const float V[4]) // modern gcc compiler succesfuly vectorize such implementation!
+//{
+//	RES[0] = V[0] * B[0] + V[1] * B[4] + V[2] * B[ 8] + V[3] * B[12];
+//	RES[1] = V[0] * B[1] + V[1] * B[5] + V[2] * B[ 9] + V[3] * B[13];
+//	RES[2] = V[0] * B[2] + V[1] * B[6] + V[2] * B[10] + V[3] * B[14];
+//	RES[3] = V[0] * B[3] + V[1] * B[7] + V[2] * B[11] + V[3] * B[15];
+//}
+
+//static inline float4 swglClipSpaceToScreenSpaceTransform(float4 a_pos, const float4 viewportf) // pre (g_pContext != nullptr)
+//{
+//  const float fw = viewportf.z;
+//  const float fh = viewportf.w;
+//
+//  const float x  = a_pos.x*0.5f + 0.5f;
+//  const float y  = a_pos.y*0.5f + 0.5f;
+//
+//  return float4(x*fw - 0.5f + viewportf.x, y*fh - 0.5f + viewportf.y, a_pos.z, a_pos.w);
+//}
+
+struct ConstantInputData
+{
+  float projM[16];
+  float viewportWidth;
+};
+
+float ProjectX(float B[16], float V[4])
+{
+  float W = V[0] * B[3] + V[1] * B[7] + V[2] * B[11] + V[3] * B[15]; 
+  return V[0]/W;
+}
+
+float ProjectY(float B[16], float V[4])
+{
+  float W =  V[0] * B[3] + V[1] * B[7] + V[2] * B[11] + V[3] * B[15]; 
+  return V[1]/W;
+}
+
+float NdcToScreenSpace(float x, float width)
+{
+  return (x*0.5f + 0.5f)*width - 0.5f;
+}
+
+float VS_X(float B[16], float V[4], float width)
+{
+  const float xNDC = ProjectX(B,V);
+  return NdcToScreenSpace(xNDC, width);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void VS_X_grad(float B[16], float V[4], float width, clad::array_ref<float> _d_B, clad::array_ref<float> _d_V, clad::array_ref<float> _d_width);
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, const char** argv)
 {
@@ -66,7 +129,37 @@ int main(int argc, const char** argv)
   //float result1[2] = {};
   //f_grad1.execute(xy, &result1[0]);
   //std::cout << "dx: " << result1[0] << ' ' << "dy: " << result1[1] << std::endl;
+  
+  ConstantInputData data = {
+                            {1.0f, 0.3f, 0.2f, 0.1f,
+                             0.3f, 1.0f, 0.1f, 0.1f,
+                             0.2f, 0.2f, 1.0f, 0.1f,
+                             0.1f, 0.1f, 0.1f, 1.0f}, 
 
+                             1024.0f};
+
+  std::cout << "HERE(1)" << std::endl;
+
+  auto vsx_grad = clad::gradient(VS_X);
+
+  std::cout << "HERE(2)" << std::endl;
+
+  float vertex[4] = {1,1,1,1};
+  float result1[16+4+1] = {};
+  
+  vsx_grad.execute(data.projM, vertex, data.viewportWidth,
+                   clad::array_ref<float>(&result1[0], 16), clad::array_ref<float>(&result1[16], 4), clad::array_ref<float>(&result1[20], 1));
+
+  //VS_X_grad(data.projM, vertex, data.viewportWidth,
+  //          clad::array_ref<float>(&result1[0], 16), clad::array_ref<float>(&result1[16], 4), clad::array_ref<float>(&result1[20], 1));
+
+  std::cout << "HERE(3)" << std::endl;
+
+  for(int i=0;i<21;i++)
+    std::cout << i << ":\t" << result1[i] << std::endl;
+
+
+/*
   auto ggx_grad = clad::gradient(EvalGGX);
 
   float3 lightDir = LiteMath::normalize(float3(-1,1,0));
@@ -78,6 +171,8 @@ int main(int argc, const char** argv)
   ggx_grad.execute(lightDir.M, viewDir.M, normal.M, roughness, 
                    &result1[0], &result1[3], &result1[6], &result1[9]);
   
+  //EvalGGX_grad(lightDir.M, viewDir.M, normal.M, roughness, 
+  //             &result1[0], &result1[3], &result1[6], &result1[9]);
 
   // check with brute force approach
   // 
@@ -119,6 +214,7 @@ int main(int argc, const char** argv)
 
   for(int i=0;i<10;i++)
     std::cout << std::setw(10) << std::right << result1[i] << " | " << result2[i] << std::endl;
-
+  */ 
+ 
   return 0;
 }

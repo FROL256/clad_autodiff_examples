@@ -4,7 +4,7 @@
 		{
 			"label": "BuildDebug",
 			"type": "shell",
-			"command": "clang-12 -I /home/frol/PROG/CladBuild/inst/include -x c++ -std=c++11 -g -fplugin=/home/frol/PROG/CladBuild/inst/lib/clad.so SourceFile.cpp -o z_out -lstdc++ -lm -DCLAD_NO_NUM_DIFF",
+			"command": "clang-12 -I ${workspaceFolder}/inst/include -x c++ -std=c++11 -g -fplugin=${workspaceFolder}/inst/lib/clad.so SourceFile.cpp -o z_out -lstdc++ -lm -DCLAD_NO_NUM_DIFF",
 			"group": "build",
 			"problemMatcher": [
 					"$gcc"
@@ -14,7 +14,7 @@
 		{
 			"label": "BuildGenerate",
 			"type": "shell",
-			"command": "clang-12 -I /home/frol/PROG/CladBuild/inst/include -x c++ -std=c++11 -g -fplugin=/home/frol/PROG/CladBuild/inst/lib/clad.so SourceFile.cpp -o z_out -lstdc++ -lm -Xclang -plugin-arg-clad -Xclang -fgenerate-source-file -DCLAD_NO_NUM_DIFF",
+			"command": "clang-12 -I ${workspaceFolder}/inst/include -x c++ -std=c++11 -g -fplugin=${workspaceFolder}/inst/lib/clad.so SourceFile.cpp -o z_out -lstdc++ -lm -Xclang -plugin-arg-clad -Xclang -fgenerate-source-file -DCLAD_NO_NUM_DIFF",
 			"group": "build",
 			"problemMatcher": [
 					"$gcc"
