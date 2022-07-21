@@ -374,7 +374,7 @@ int main(int argc, const char** argv)
   for(int i=0;i<3;i++)
   {
     std::cout << v0_d[0][i] << "\t" << v1_d[0][i] << std::endl;
-    std::cout << v0_d[1][i] << "\t" << v1_d[1][i] << std::endl << std::endl;
+    std::cout << v0_d[0][i] << "\t" << v1_d[1][i] << std::endl << std::endl;
   }
   
   //vsx_grad.execute(data.projM, vertex, data.width,
